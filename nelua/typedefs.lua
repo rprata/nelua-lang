@@ -152,7 +152,10 @@ typedefs.call_pragmas = {
   cdefine = shaper.shape{n=shaper.number, shaper.string},
   cflags = shaper.shape{n=shaper.number, shaper.string},
   ldflags = shaper.shape{n=shaper.number, shaper.string},
-  linklib = shaper.shape{n=shaper.number, shaper.string}
+  linklib = shaper.shape{n=shaper.number, shaper.string},
+  pragma = shaper.shape{n=shaper.number, shaper.table},
+  push_pragma = shaper.shape{n=shaper.number, shaper.table},
+  pop_pragma = shaper.shape{n=shaper.number},
 }
 
 -- List of possible annotations for function types.

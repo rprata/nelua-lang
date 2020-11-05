@@ -20,6 +20,7 @@ function Scope:_init(parent, node)
     self.context = parent.context
     table.insert(parent.children, self)
   end
+  self.pragmas = setmetatable({}, {__index = parent.pragmas})
   self.unresolved_symbols = {}
   self.children = {}
   self.labels = {}

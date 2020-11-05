@@ -67,9 +67,8 @@ function builtins.require(context, node)
   -- analyze it
   local ast = attr.loadedast
   local state = context:push_state()
+  state.unitname = attr.unitname
   context:push_scope(context.rootscope)
-  context:push_pragmas()
-  context.pragmas.unitname = attr.unitname
   state.inrequire = true
   if justloaded then
     preprocessor.preprocess(context, ast)
@@ -77,11 +76,10 @@ function builtins.require(context, node)
   context:traverse_node(ast)
   context:pop_scope()
   context:pop_state()
-  context:pop_pragmas()
 end
 
 function builtins.check(context, node)
-  if context.pragmas.nochecks then
+  if context.scope.pragmas.nochecks then
     node.attr.omitcall = true
   end
 end

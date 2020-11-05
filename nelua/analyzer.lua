@@ -10,7 +10,6 @@ local bn = require 'nelua.utils.bn'
 local except = require 'nelua.utils.except'
 local preprocessor = require 'nelua.preprocessor'
 local builtins = require 'nelua.builtins'
-local config = require 'nelua.configer'.get()
 local analyzer = {}
 
 local primtypes = typedefs.primtypes
@@ -55,7 +54,7 @@ function visitors.Number(context, node)
     end
     attr.type = type
   end
-  if context.pragmas.nofloatsuffix then
+  if context.scope.pragmas.nofloatsuffix then
     attr.nofloatsuffix = true
   end
   attr.value = value
@@ -221,7 +220,7 @@ local function visitor_Array_literal(context, node, littype)
       if not ok then
         childnode:raisef("in array literal at index %d: %s", i, err)
       end
-      if not context.pragmas.nochecks and subtype ~= childtype then
+      if not context.scope.pragmas.nochecks and subtype ~= childtype then
         childnode.checkcast = true
       end
     end
@@ -286,7 +285,7 @@ local function visitor_Record_literal(context, node, littype)
       if not ok then
         childnode:raisef("in record literal field '%s': %s", fieldname, err)
       end
-      if not context.pragmas.nochecks and fieldtype ~= fieldvaltype then
+      if not context.scope.pragmas.nochecks and fieldtype ~= fieldvaltype then
         fieldvalnode.checkcast = true
       end
     end
@@ -337,10 +336,22 @@ function visitors.Table(context, node)
   end
 end
 
-function visitors.PragmaCall(_, node)
-  local name = node[1]
+function visitors.PragmaCall(context, node)
+  local name, params = node[1], node[2]
   local pragmashape = typedefs.call_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
+
+  if name == 'push_pragma' then
+    local addpragmas = table.unpack(params)
+    local pragmas = context:push_pragmas()
+    tabler.update(pragmas, addpragmas)
+  elseif name == 'pop_pragma' then
+    if not context:pop_pragmas() then
+      node:raisef("mismatched pragma pop")
+    end
+  elseif name == 'pragma' then
+    tabler.update(context.pragmas, params[1])
+  end
   node.done = true
 end
 
@@ -1061,7 +1072,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
               calleename, i, err)
           end
 
-          if not context.pragmas.nochecks and funcargtype ~= argtype and argnode then
+          if not context.scope.pragmas.nochecks and funcargtype ~= argtype and argnode then
             argnode.checkcast = true
           end
         else
@@ -1346,7 +1357,7 @@ local function visitor_Array_ArrayIndex(context, node, objtype, _, indexnode)
       indexnode:raisef("cannot index with value of type '%s'", indextype)
     end
   end
-  if not context.pragmas.nochecks and not checked and objtype.length > 0 then
+  if not context.scope.pragmas.nochecks and not checked and objtype.length > 0 then
     attr.checkbounds = true
   end
 end
@@ -1579,7 +1590,7 @@ function visitors.ForNum(context, node)
         if not ok then
           begvalnode:raisef("in `for` variable '%s' begin: %s", itname, err)
         end
-        if not context.pragmas.nochecks and ittype ~= btype then
+        if not context.scope.pragmas.nochecks and ittype ~= btype then
           begvalnode.checkcast = true
         end
       end
@@ -1591,7 +1602,7 @@ function visitors.ForNum(context, node)
         if not ok then
           endvalnode:raisef("in `for` variable '%s' end: %s", itname, err)
         end
-        if not context.pragmas.nochecks and ittype ~= etype then
+        if not context.scope.pragmas.nochecks and ittype ~= etype then
           endvalnode.checkcast = true
         end
       end
@@ -1778,7 +1789,7 @@ function visitors.VarDecl(context, node)
     if varscope == 'global' or context.scope.is_topscope then
       varnode.attr.staticstorage = true
     end
-    if context.pragmas.nostatic then
+    if context.scope.pragmas.nostatic then
       varnode.attr.nostatic = true
     end
     local symbol = context:traverse_node(varnode)
@@ -1825,7 +1836,7 @@ function visitors.VarDecl(context, node)
         varnode:raisef("cannot assign imported variables, only imported types can be assigned")
       end
     else
-      if context.pragmas.noinit then
+      if context.scope.pragmas.noinit then
         varnode.attr.noinit = true
       end
     end
@@ -1872,7 +1883,7 @@ function visitors.VarDecl(context, node)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
-        if not context.pragmas.nochecks and valnode and vartype ~= valtype then
+        if not context.scope.pragmas.nochecks and valnode and vartype ~= valtype then
           valnode.checkcast = true
           varnode.checkcast = true
         end
@@ -1928,7 +1939,7 @@ function visitors.Assign(context, node)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end
-      if not context.pragmas.nochecks and valnode and vartype ~= valtype then
+      if not context.scope.pragmas.nochecks and valnode and vartype ~= valtype then
         valnode.checkcast = true
         varnode.checkcast = true
       end
@@ -1955,7 +1966,7 @@ function visitors.Return(context, node)
             if not ok then
               (retnode or node):raisef("return at index %d: %s", i, err)
             end
-            if not context.pragmas.nochecks and retnode and funcrettype ~= rettype then
+            if not context.scope.pragmas.nochecks and retnode and funcrettype ~= rettype then
               retnode.checkcast = true
             end
           end
@@ -2106,7 +2117,7 @@ local function visitor_FuncDef_variable(context, scopekind, varnode)
   if scopekind == 'global' or context.scope.is_topscope or decl then
     varnode.attr.staticstorage = true
   end
-  if context.pragmas.nostatic then
+  if context.scope.pragmas.nostatic then
     varnode.attr.nostatic = true
   end
   local symbol = context:traverse_node(varnode)
@@ -2505,7 +2516,7 @@ function visitors.UnaryOp(context, node)
     end
   elseif opname == 'deref' then
     attr.lvalue = true
-    if not context.pragmas.nochecks then
+    if not context.scope.pragmas.nochecks then
       argnode.checkderef = true
     end
   end
@@ -2640,13 +2651,9 @@ function analyzer.analyze(context)
   analyzer.current_context = context
   context.analyzing = true
 
-  if config.pragma then
-    tabler.update(context.pragmas, config.pragma)
-  end
-  context:push_pragmas()
-
+  local rootstate = context:push_state()
   if ast.src and ast.src.name then
-    context.pragmas.unitname = pegger.filename_to_unitname(ast.src.name)
+    rootstate.unitname = pegger.filename_to_unitname(ast.src.name)
   end
 
   -- phase 1 traverse: preprocess
@@ -2677,12 +2684,12 @@ function analyzer.analyze(context)
     context:pop_state()
   end
 
-  -- execute after inferance callbacks
+  -- execute after inference callbacks
   for _,f in ipairs(context.after_inferences) do
     f()
   end
 
-  context:pop_pragmas()
+  context:pop_state()
 
   context.analyzing = nil
   return context

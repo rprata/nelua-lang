@@ -269,7 +269,7 @@ function preprocessor.preprocess(context, ast)
     if key == 'symbols' then
       return ppcontext.context.scope.symbols
     elseif key == 'pragmas' then
-      return ppcontext.context.pragmas
+      return ppcontext.context.scope.pragmas
     end
     local symbol = ppcontext.context.scope.symbols[key]
     if symbol then

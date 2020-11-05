@@ -24,7 +24,7 @@ end
 -- Return string functions
 function CEmitter:zeroinit(type)
   local s
-  if type.is_float32 and not self.context.pragmas.nofloatsuffix then
+  if type.is_float32 and not self.context.scope.pragmas.nofloatsuffix then
     s = '0.0f'
   elseif type.is_float then
     s = '0.0'

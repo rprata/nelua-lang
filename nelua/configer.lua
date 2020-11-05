@@ -19,6 +19,7 @@ local defconfig = {
   generator = 'c',
   gdb = 'gdb',
   cache_dir = 'nelua_cache',
+  pragmas = {},
   cpu_bits = platform.cpu_bits
 }
 metamagic.setmetaindex(config, defconfig)
@@ -100,7 +101,7 @@ local function build_configs(conf)
       end
       except.assertraisef(ok, "failed parsing pragma '%s':\n  %s", code, err)
     end
-    conf.pragma = pragmas
+    tabler.update(conf.pragmas, pragmas)
   end
 end
 

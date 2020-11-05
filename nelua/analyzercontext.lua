@@ -5,28 +5,28 @@ local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
 local sstream = require 'nelua.utils.sstream'
 local VisitorContext = require 'nelua.visitorcontext'
+local config = require 'nelua.configer'.get()
 
 local AnalyzerContext = class(VisitorContext)
 
 function AnalyzerContext:_init(visitors, parser, ast, generator)
   VisitorContext._init(self, visitors)
   self.parser = parser
-  self.rootscope = Scope(self, ast)
   self.ast = ast
-  self.scope = self.rootscope
   self.usedbuiltins = {}
   self.env = {}
   self.requires = {}
   self.scopestack = {}
-  self.globalpragmas = {}
-  self.pragmas = setmetatable({}, {__index = self.globalpragmas})
   self.pragmastack = {}
   self.usedcodenames = {}
   self.after_analyze = {}
   self.after_inferences = {}
+  self.pragmas = setmetatable({}, {__index = config.pragmas})
   self.unresolvedcount = 0
   assert(generator)
   self.generator = generator
+  self.rootscope = Scope(self, ast)
+  self.scope = self.rootscope
 end
 
 function AnalyzerContext:push_pragmas()
@@ -37,8 +37,10 @@ function AnalyzerContext:push_pragmas()
 end
 
 function AnalyzerContext:pop_pragmas()
+  if #self.pragmastack < 1 then return false end
   self.pragmas = table.remove(self.pragmastack)
   assert(self.pragmas)
+  return true
 end
 
 function AnalyzerContext:push_scope(scope)
@@ -90,7 +92,7 @@ function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)
 end
 
 function AnalyzerContext:choose_codename(name)
-  local unitname = self.pragmas.unitname or self.state.unitname
+  local unitname = self.scope.pragmas.unitname or self.state.unitname
   name = name:gsub('%(','_'):gsub('[^%w_]','')
   if unitname and unitname ~= '' then
     unitname = unitname .. '_'
