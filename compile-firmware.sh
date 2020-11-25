@@ -1,0 +1,1 @@
+./nelua.sh -b --cc=avr-gcc --cpu-bits=16 examples/arduino.nelua

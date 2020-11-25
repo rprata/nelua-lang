@@ -1,0 +1,14 @@
+require 'lib/Arduino/arduino'
+
+Digital.setup(PIN13, 1)
+Serial.init()
+Serial.start(0, 115200)
+
+while(true)
+do
+    Digital.write(PIN13, 1)
+    Delay.ms(1000)
+    Digital.write(PIN13, 0)
+    Delay.ms(1000)
+    Serial.println(0, "Message")
+end

@@ -1,0 +1,47 @@
+## pragmas.nogc = falses
+
+## cflags "-I./lib/Arduino ./lib/Arduino/io.c ./lib/Arduino/hserial.c -w -Os -ffunction-sections -fdata-sections -mmcu=atmega328p -DF_CPU=16000000L"
+## ldflags "--gc-sections"
+
+##[[ 
+cinclude '<io.h>'
+cinclude '<hserial.h>'
+local neluatypes = require 'nelua.types'
+]]
+
+global direction_t <cimport'direction_t',nodecl> = #[neluatypes.IntegralType('direction_t', primtypes.cint.size)]#
+global state_t <cimport'direction_t',nodecl> = #[neluatypes.IntegralType('state_t', primtypes.cint.size)]#
+
+-- Pinout Constants
+global PIN13: cint <const,cimport'PIN13',nodecl>
+global PIN12: cint <const,cimport'PIN12',nodecl>
+global PIN11: cint <const,cimport'PIN11',nodecl>
+global PIN10: cint <const,cimport'PIN10',nodecl>
+global PIN9: cint <const,cimport'PIN9',nodecl>
+global PIN8: cint <const,cimport'PIN8',nodecl>
+global PIN7: cint <const,cimport'PIN7',nodecl>
+global PIN6: cint <const,cimport'PIN6',nodecl>
+global PIN5: cint <const,cimport'PIN5',nodecl>
+global PIN4: cint <const,cimport'PIN4',nodecl>
+global PIN3: cint <const,cimport'PIN4',nodecl>
+global PIN2: cint <const,cimport'PIN2',nodecl>
+global PIN1: cint <const,cimport'PIN1',nodecl>
+global PIN0: cint <const,cimport'PIN0',nodecl>
+
+global Digital = @record{}
+-- I/O functions
+function Digital.setup(pin: cuint, direction: direction_t): void <cimport'iosetpinnout',nodecl> end
+function Digital.read(pin: cuint): state_t <cimport'ioreadinput',nodecl> end
+function Digital.write(pin: cuint, state: state_t): void <cimport'iowriteoutput',nodecl> end
+
+global Delay = @record{}
+-- Delay functions
+function Delay.ms(__ms: cdouble): void <cimport'_delay_ms',nodecl> end
+function Delay.ns(__ms: cdouble): void <cimport'_delay_ns',nodecl> end
+
+global Serial = @record{}
+-- Serial communication
+function Serial.init(): void <cimport'hs_init',nodecl> end
+function Serial.start(port: cint, baudrate: clong): void <cimport'hs_start',nodecl> end
+function Serial.print(port: cint, message: cstring): void <cimport'hs_writeStr',nodecl> end
+function Serial.println(port: cint, message: cstring): void <cimport'hs_writeLine',nodecl> end
